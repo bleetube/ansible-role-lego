@@ -1,0 +1,35 @@
+---
+- name: Get nologin path for acme user
+  ansible.builtin.find:
+    paths:
+      - /bin
+      - /sbin
+      - /usr/bin
+      - /usr/sbin
+    patterns: nologin
+  register: nologin_bin
+
+- name: Create the acme group
+  ansible.builtin.group:
+    name: "{{ acme_system_group }}"
+    state: present
+    system: true
+  when: acme_system_group != "root"
+
+- name: Create the acme system user
+  ansible.builtin.user:
+    name: "{{ acme_system_user }}"
+    groups: "{{ acme_system_group }}"
+    shell: "{{ nologin_bin.files[0].path }}"
+    system: true
+    create_home: false
+    home: "{{ acme_path }}"
+  when: acme_system_user != "root"
+
+- name: Ensure acme_path exists.
+  ansible.builtin.file:
+    path: "{{ acme_path }}"
+    owner: "{{ acme_system_user }}"
+    group: "{{ acme_system_group }}"
+    state: directory
+    mode: '0750'

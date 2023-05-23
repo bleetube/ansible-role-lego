@@ -1,0 +1,37 @@
+---
+- name: Assert all secrets have been configured.
+  ansible.builtin.assert:
+    that:
+#     - EASYDNS_TOKEN != ''
+#     - EASYDNS_KEY != ''
+      - NAMECHEAP_API_USER != ''
+      - NAMECHEAP_API_KEY != ''
+    fail_msg: "FAILED: Secrets have not been configured."
+  no_log: true
+
+- name: Set up the acme system user and group.
+  import_tasks: setup-acme.yml
+
+- name: Add nginx user to the acme group.
+  ansible.builtin.user:
+    name: "{{ nginx_user }}"
+    groups: "{{ acme_system_group }}"
+    append: true
+  when: acme_system_user != "root"
+
+- name: Run lego looped task to order or renew certificates for all acme domains.
+  include_tasks: certificates.yml
+  loop: "{{ acme_domains }}"
+  loop_control:
+    loop_var: acme_domain
+  tags: lego
+
+- name: Loop through the domain list (again) to configure nginx for each ACME domain
+  include_tasks: nginx_conf.yml
+  loop: "{{ acme_domains }}"
+  loop_control:
+    loop_var: acme_domain
+  tags: nginx
+
+- import_tasks: dhparams.yml
+  tags: dhparams
