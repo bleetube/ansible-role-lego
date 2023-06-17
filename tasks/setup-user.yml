@@ -8,6 +8,7 @@
       - /usr/sbin
     patterns: nologin
   register: nologin_bin
+  become: true
 
 - name: Create the acme group
   ansible.builtin.group:
@@ -15,6 +16,7 @@
     state: present
     system: true
   when: acme_system_group != "root"
+  become: true
 
 - name: Create the acme system user
   ansible.builtin.user:
@@ -25,6 +27,7 @@
     create_home: false
     home: "{{ acme_path }}"
   when: acme_system_user != "root"
+  become: true
 
 - name: Ensure acme_path exists.
   ansible.builtin.file:
@@ -33,3 +36,12 @@
     group: "{{ acme_system_group }}"
     state: directory
     mode: '0750'
+  become: true
+
+- name: Add nginx user to the ACME group.
+  ansible.builtin.user:
+    name: "{{ nginx_user }}"
+    groups: "{{ acme_system_group }}"
+    append: true
+  when: acme_system_user != "root"
+  become: true

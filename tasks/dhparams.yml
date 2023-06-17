@@ -5,6 +5,7 @@
   register: dhparams
   delegate_to: localhost
   tags: dhparams
+  become: false
 
 - name: Use previously generated dhparams to reduce deployment time by several minutes.
   ansible.builtin.copy:

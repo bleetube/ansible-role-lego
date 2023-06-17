@@ -1,64 +1,4 @@
 ---
-# These tasks run in a loop for each domain so that we can check for existing certificates
-# and only order new ones if they don't already exist.
-
-- name: "Check for an existing certificate for {{ acme_domain.domain }}"
-  ansible.builtin.stat:
-    path: "{{ lego_path }}/certificates/{{ acme_domain.domain }}.crt"
-  register: lego_cert
-  delegate_to: localhost
-  tags: lego
-
-- name: Instruct lego to register an account and order a new certificate if one doesn't already exist.
-  set_fact:
-    lego_command:  "{{ 'renew' if lego_cert.stat.exists else 'run'}}"
-  delegate_to: localhost
-  tags: lego
-
-- name: Order acme certificates without waiting for propogation of TXT record to all authoritative name servers.
-  ansible.builtin.command: 
-    cmd: >
-        lego --path {{ lego_path }} --dns {{ acme_domain.provider }} --domains {{ acme_domain.domain }} --email {{ acme_email }} --dns.disable-cp --accept-tos {{ lego_command }}
-  register: lego_result
-  delegate_to: localhost
-  changed_when: False
-  ignore_errors: true
-  tags: lego
-  environment:
-#   EASYDNS_TOKEN: "{{ EASYDNS_TOKEN }}"
-#   EASYDNS_KEY: "{{ EASYDNS_KEY }}"
-    NAMECHEAP_API_USER: "{{ NAMECHEAP_API_USER }}"
-    NAMECHEAP_API_KEY: "{{ NAMECHEAP_API_KEY }}"
-  
-- name: Print lego output with dns.disable-cp
-  ansible.builtin.debug:
-    var: lego_result
-  delegate_to: localhost
-  tags: lego
-
-  # --dns.disable-cp: disables the need to wait the propagation of the TXT record to all authoritative name servers.
-  # I haven't yet figured out why it only works sporadically with or without this option.
-- name: Retry the last command if necessary, but wait for propogation of TXT record to all authoritative name servers.
-  ansible.builtin.command: 
-    cmd: >
-        lego --path {{ lego_path }} --dns {{ acme_domain.provider }} --domains {{ acme_domain.domain }} --email {{ acme_email }} --accept-tos {{ lego_command }}
-  when: lego_result.failed
-  register: lego_result
-  delegate_to: localhost
-  changed_when: False
-  tags: lego
-  environment:
-#   EASYDNS_TOKEN: "{{ EASYDNS_TOKEN }}"
-#   EASYDNS_KEY: "{{ EASYDNS_KEY }}"
-    NAMECHEAP_API_USER: "{{ NAMECHEAP_API_USER }}"
-    NAMECHEAP_API_KEY: "{{ NAMECHEAP_API_KEY }}"
-  
-- name: Print lego output without dns.disable-cp
-  ansible.builtin.debug:
-    var: lego_result
-  delegate_to: localhost
-  tags: lego
-
 - name: "Copy certificate files for {{ acme_domain.domain }}."
   ansible.builtin.copy:
     src: "{{ lego_path }}/certificates/{{ acme_domain.domain }}.{{ file_extension }}"
@@ -73,3 +13,47 @@
     - issuer.crt
   loop_control:
     loop_var: file_extension
+
+- name: Configure nginx TLSv1.2 for {{ acme_domain.domain }}
+  ansible.builtin.import_role:
+    name: nginxinc.nginx_core.nginx_config
+    allow_duplicates: true
+  tags: nginx
+  vars:
+    nginx_config_http_template_enable: true
+    nginx_config_http_template:
+      - template_file: http/default.conf.j2
+        deployment_location: "/etc/nginx/acme_{{ acme_domain.domain }}.conf"
+        backup: false
+        config:
+          core:
+            server_name: "{{ acme_domain.domain }}"
+          ssl:
+            certificate: "{{ acme_path }}/certificates/{{ acme_domain.domain }}.crt"
+            certificate_key: "{{ acme_path }}/certificates/{{ acme_domain.domain }}.key"
+            trusted_certificate: "{{ acme_path }}/certificates/{{ acme_domain.domain }}.issuer.crt"
+            ciphers: ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+            dhparam: "{{ nginx_config_dhparam }}"
+            ecdh_curve: X25519:secp521r1:secp384r1
+            prefer_server_ciphers: true
+            protocols:
+              - TLSv1.2
+              - TLSv1.3
+            session_cache:
+              shared:
+                name: "{{ acme_domain.domain }}"
+                size: 1M
+            session_tickets: false
+            session_timeout: 1d
+            ocsp: true
+            ocsp_cache:
+              name: cache
+              size: 64k
+            stapling: true
+            stapling_verify: true
+            ocsp_responder: http://r3.o.lencr.org
+          headers:
+            add_headers:
+              - name: Strict-Transport-Security
+                value: '"max-age=7776000"' 
+                always: true
