@@ -4,12 +4,11 @@ acme_system_user: acme
 acme_system_group: acme
 nginx_config_dhparam: "{{ acme_path }}/dhparams.pem"
 nginx_user: nginx
-#EASYDNS_TOKEN: "{{ lookup('ansible.builtin.env', 'EASYDNS_TOKEN') }}"
-#EASYDNS_KEY: "{{ lookup('ansible.builtin.env', 'EASYDNS_KEY') }}"
-NAMECHEAP_API_USER: "{{ lookup('ansible.builtin.env', 'NAMECHEAP_API_USER') }}"
-NAMECHEAP_API_KEY: "{{ lookup('ansible.builtin.env', 'NAMECHEAP_API_KEY') }}"
 
-# lego_path refers to the local ansible user's home directory, used in delegate_to: localhost
+lego_environment:
+  EXAMPLE_DNS_PROVIDER_USERNAME: "example"
+
+# lego_path refers to the local ansible user's home directory, used in a task with delegate_to: localhost
 lego_path: ~/.secrets/acme
 # This might work if the playbook is executing as the local user:
 #lego_path: "{{ ansible_env.HOME }}/.secrets/acme/certificates"

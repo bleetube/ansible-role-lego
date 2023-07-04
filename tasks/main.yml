@@ -1,11 +1,12 @@
 ---
-- name: Assert all secrets have been configured.
+- name: Assert secrets have been configured.
   ansible.builtin.assert:
     that:
-      - NAMECHEAP_API_USER != ''
-      - NAMECHEAP_API_KEY != ''
-    fail_msg: "FAILED: Secrets have not been configured."
-  no_log: true
+      - acme_domains is defined
+      - acme_email is defined
+      - acme_email != ''
+    fail_msg: "FAILED: No ACME variables have been configured for this host."
+# no_log: true
 
 - name: Set up the ACME system user and group.
   import_tasks: setup-user.yml

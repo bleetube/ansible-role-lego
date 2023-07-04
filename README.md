@@ -2,6 +2,8 @@
 
 This role runs [acme-lego](https://go-acme.github.io/lego/) on the localhost, such that the acme account and DNS api credentials are never communicated to the server. It also creates boilerplate nginx configuration in accordance with the Mozilla's recomended TLS configuration.
 
+This role supports using multiple providers at the same time, just source all the credentials needed beforehand.
+
 ## Requirements
 
 The `nginx_config` role which is distributed in the nginx_core collection.
@@ -21,6 +23,16 @@ You can configure multiple providers and domains with a single ACME account.
 acme_email: acme@example.com
 acme_domains:
   - { domain: myhost.example.com, provider: easydns }
+```
+
+Lego uses environment variables to authenticate to your DNS provider. You should source those secrets as environment variables before running the playbook.
+
+If for some reason you cannot source the environment variables ahead of running the playbook, you can define them as Ansible variables.
+
+```yaml
+lego_environment:
+  - NAMECHEAP_API_USER: '...'
+  - NAMECHEAP_API_KEY: '...'
 ```
 
 ## Secrets

@@ -24,11 +24,8 @@
   changed_when: False
   ignore_errors: true
   tags: lego
-  environment:
-#   EASYDNS_TOKEN: "{{ EASYDNS_TOKEN }}"
-#   EASYDNS_KEY: "{{ EASYDNS_KEY }}"
-    NAMECHEAP_API_USER: "{{ NAMECHEAP_API_USER }}"
-    NAMECHEAP_API_KEY: "{{ NAMECHEAP_API_KEY }}"
+  environment: []
+# environment: "{{ lego_environment }}"
   
 - name: Print lego output with dns.disable-cp
   ansible.builtin.debug:
@@ -47,11 +44,8 @@
   delegate_to: localhost
   changed_when: False
   tags: lego
-  environment:
-#   EASYDNS_TOKEN: "{{ EASYDNS_TOKEN }}"
-#   EASYDNS_KEY: "{{ EASYDNS_KEY }}"
-    NAMECHEAP_API_USER: "{{ NAMECHEAP_API_USER }}"
-    NAMECHEAP_API_KEY: "{{ NAMECHEAP_API_KEY }}"
+  environment: []
+# environment: "{{ lego_environment }}"
   
 - name: Print lego output without dns.disable-cp
   ansible.builtin.debug:
