@@ -24,8 +24,7 @@
   changed_when: False
   ignore_errors: true
   tags: lego
-  environment: []
-# environment: "{{ lego_environment }}"
+  environment: "{{ lego_environment }}"
   
 - name: Print lego output with dns.disable-cp
   ansible.builtin.debug:
@@ -44,8 +43,7 @@
   delegate_to: localhost
   changed_when: False
   tags: lego
-  environment: []
-# environment: "{{ lego_environment }}"
+  environment: "{{ lego_environment }}"
   
 - name: Print lego output without dns.disable-cp
   ansible.builtin.debug:

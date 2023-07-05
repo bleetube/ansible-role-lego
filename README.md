@@ -31,8 +31,8 @@ If for some reason you cannot source the environment variables ahead of running 
 
 ```yaml
 lego_environment:
-  - NAMECHEAP_API_USER: '...'
-  - NAMECHEAP_API_KEY: '...'
+  NAMECHEAP_API_USER: '...'
+  NAMECHEAP_API_KEY: '...'
 ```
 
 ## Secrets
