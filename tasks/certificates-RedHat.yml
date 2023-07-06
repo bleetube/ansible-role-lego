@@ -1,0 +1,59 @@
+---
+- name: "Copy certificate files for {{ acme_domain.domain }}."
+  ansible.builtin.copy:
+    src: "{{ lego_path }}/certificates/{{ acme_domain.domain }}.{{ file_extension }}"
+    dest: "{{ acme_path }}/certificates/"
+    owner: "{{ acme_system_user }}"
+    group: "{{ acme_system_group }}"
+    mode: '0640'
+  tags: lego
+  loop:
+    - crt
+    - key
+    - issuer.crt
+  loop_control:
+    loop_var: file_extension
+
+- name: Configure nginx TLSv1.2 for {{ acme_domain.domain }}
+  ansible.builtin.import_role:
+    name: nginxinc.nginx_core.nginx_config
+    allow_duplicates: true
+  tags: nginx
+  vars:
+    nginx_config_http_template_enable: true
+    nginx_config_http_template:
+      - template_file: http/default.conf.j2
+        deployment_location: "/etc/nginx/acme_{{ acme_domain.domain }}.conf"
+        backup: false
+        config:
+          core:
+            server_name: "{{ acme_domain.domain }}"
+          ssl:
+            certificate: "{{ acme_path }}/certificates/{{ acme_domain.domain }}.crt"
+            certificate_key: "{{ acme_path }}/certificates/{{ acme_domain.domain }}.key"
+            trusted_certificate: "{{ acme_path }}/certificates/{{ acme_domain.domain }}.issuer.crt"
+            ciphers: ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
+            dhparam: "{{ nginx_config_dhparam }}"
+#           ecdh_curve: X25519:secp521r1:secp384r1
+            prefer_server_ciphers: true
+            protocols:
+              - TLSv1.2
+#             - TLSv1.3
+            session_cache:
+              shared:
+                name: "{{ acme_domain.domain }}"
+                size: 1M
+            session_tickets: false
+            session_timeout: 1d
+            ocsp: true
+            ocsp_cache:
+              name: cache
+              size: 64k
+            stapling: true
+            stapling_verify: true
+            ocsp_responder: http://r3.o.lencr.org
+          headers:
+            add_headers:
+              - name: Strict-Transport-Security
+                value: '"max-age=7776000"' 
+                always: true

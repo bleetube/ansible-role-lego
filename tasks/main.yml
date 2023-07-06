@@ -31,6 +31,18 @@
   loop_control:
     loop_var: acme_domain
   tags: nginx
+  when: os_family != 'RedHat'
+
+- name: Loop through the domain list (again) to copy certs and configure nginx for each ACME domain
+  include_tasks:
+    file: certificates-RedHat.yml
+    apply:
+      become: true
+  loop: "{{ acme_domains }}"
+  loop_control:
+    loop_var: acme_domain
+  tags: nginx
+  when: os_family == 'RedHat'
 
 - import_tasks: dhparams.yml
   become: true
