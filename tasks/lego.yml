@@ -7,46 +7,40 @@
     path: "{{ lego_path }}/certificates/{{ acme_domain.domain }}.crt"
   register: lego_cert
   delegate_to: localhost
-  tags: lego
 
 - name: Instruct lego to register an account and order a new certificate if one doesn't already exist.
   set_fact:
     lego_command:  "{{ 'renew' if lego_cert.stat.exists else 'run'}}"
   delegate_to: localhost
-  tags: lego
 
-- name: Order acme certificates without waiting for propogation of TXT record to all authoritative name servers.
+- name: Order acme certificates, waiting for propogation of TXT record to all authoritative name servers.
   ansible.builtin.command: 
     cmd: >
-        lego --path {{ lego_path }} --dns {{ acme_domain.provider }} --domains {{ acme_domain.domain }} --email {{ acme_email }} --dns.disable-cp --accept-tos {{ lego_command }}
+        lego --path {{ lego_path }} --dns {{ acme_domain.provider }} --domains {{ acme_domain.domain }} --email {{ acme_email }} --accept-tos {{ lego_command }}
   register: lego_result
   delegate_to: localhost
   changed_when: False
   ignore_errors: true
-  tags: lego
   environment: "{{ lego_environment }}"
   
 - name: Print lego output with dns.disable-cp
   ansible.builtin.debug:
     var: lego_result
   delegate_to: localhost
-  tags: lego
 
-  # --dns.disable-cp: disables the need to wait the propagation of the TXT record to all authoritative name servers.
-  # I haven't yet figured out why it only works sporadically with or without this option.
-- name: Retry the last command if necessary, but wait for propogation of TXT record to all authoritative name servers.
+# --dns.disable-cp: disables the need to wait the propagation of the TXT record to all authoritative name servers.
+# I haven't yet figured out why it only works sporadically with or without this option.
+- name: Retry the last command if necessary, but don't wait for propogation of TXT record to all authoritative name servers.
   ansible.builtin.command: 
     cmd: >
-        lego --path {{ lego_path }} --dns {{ acme_domain.provider }} --domains {{ acme_domain.domain }} --email {{ acme_email }} --accept-tos {{ lego_command }}
+        lego --path {{ lego_path }} --dns {{ acme_domain.provider }} --domains {{ acme_domain.domain }} --email {{ acme_email }} --dns.disable-cp --accept-tos {{ lego_command }}
   when: lego_result.failed
   register: lego_result
   delegate_to: localhost
   changed_when: False
-  tags: lego
   environment: "{{ lego_environment }}"
   
 - name: Print lego output without dns.disable-cp
   ansible.builtin.debug:
     var: lego_result
   delegate_to: localhost
-  tags: lego
