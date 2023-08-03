@@ -10,7 +10,7 @@
 - name: Use previously generated dhparams to reduce deployment time by several minutes.
   ansible.builtin.copy:
     src: dhparams.pem
-    dest: "{{ acme_path }}/dhparams.pem"
+    dest: "{{ nginx_config_dhparam }}"
     force: false
   when: dhparams.stat.exists
   tags: dhparams
