@@ -22,6 +22,7 @@
   loop_control:
     loop_var: acme_domain
   tags: lego
+  notify: reload nginx
 
 - name: Loop through the domain list (again) to copy certs and configure nginx for each ACME domain
   include_tasks:
